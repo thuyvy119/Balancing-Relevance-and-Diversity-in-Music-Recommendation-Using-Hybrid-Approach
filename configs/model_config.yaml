@@ -1,0 +1,16 @@
+lightfm:
+  loss: 'warp'
+  learning_rate: 0.05
+  item_alpha: 0.0
+  user_alpha: 0.0
+
+sentence_transformer:
+  model_name: 'sentence-transformers/all-mpnet-base-v2'
+  device: 'cuda'  # or 'cpu'
+
+llm:
+  model_name: 'mistralai/Mistral-7B-v0.1'
+  device: 'cuda'  # or 'cpu'
+  max_length: 512
+  temperature: 0.7
+  top_p: 0.9 

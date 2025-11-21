@@ -1,0 +1,4 @@
+pinecone:
+  api_key: 'your-api-key'
+  environment: 'your-environment'
+  index_name: 'your-index-name' 
