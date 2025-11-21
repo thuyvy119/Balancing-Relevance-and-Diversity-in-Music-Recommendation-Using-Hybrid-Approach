@@ -37,3 +37,19 @@ data/amazon/train_amazon.pkl.part*
 data/amazon/test_amazon.pkl.part*
 data/amazon/val_amazon.pkl.part*
 
+# Large pickle files
+data/amazon/saved/*.pkl
+data/*.pkl
+notebooks/amazon/saved_pipeline/*.pkl
+
+# Large data files
+*.parquet
+notebooks/amazon/saved_pipeline/*.csv
+notebooks/amazon/*.csv
+notebooks/amazon/chroma_db/
+
+# Large CSV files (keep only small samples)
+data/amazon/samples/sample_*.csv
+!data/amazon/samples/sample_10k.csv
+!data/amazon/samples/sample_100k.csv
+
