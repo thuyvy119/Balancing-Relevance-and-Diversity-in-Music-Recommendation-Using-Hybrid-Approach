@@ -14,7 +14,7 @@ class LLMReranker:
             if "HUGGINGFACE_TOKEN" in os.environ:
                 login(token=os.environ["HUGGINGFACE_TOKEN"])
             else:
-                login(token="YOUR_HUGGINGFACE_TOKEN_HERE")
+                raise ValueError("HUGGINGFACE_TOKEN environment variable must be set")
             
             self.llm_pipeline = pipeline(
                 "text-generation",
