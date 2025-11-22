@@ -51,5 +51,8 @@ notebooks/amazon/chroma_db/
 # Large CSV files (keep only small samples)
 data/amazon/samples/sample_*.csv
 !data/amazon/samples/sample_10k.csv
-!data/amazon/samples/sample_100k.csv
+
+# Large compressed files
+*.jsonl.gz
+notebooks/amazon/recommendations.jsonl.gz
 
