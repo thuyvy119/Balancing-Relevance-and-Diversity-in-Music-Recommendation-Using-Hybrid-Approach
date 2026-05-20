@@ -3,16 +3,18 @@ from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
 
 class RetrievalEngine:  
-    def __init__(self, chroma_db, embedding_model):
+    def __init__(self, chroma_db, embedding_model, embedding_lookup=None):
         self.chroma_db = chroma_db
         self.embedding_model = embedding_model
+        # self.embedding_lookup = embedding_lookup or {}
+        # print(f"Embedding lookup size: {len(self.embedding_lookup)}")
 
-    def _get_cf_score(self, item_id: str) -> float:
-        results = self.chroma_db._collection.get(where={"item_id": item_id})
+    def _get_cf_score(self, iid: str) -> float:
+        results = self.chroma_db._collection.get(where={"iid": iid})
         return results['metadatas'][0].get('cf_score', 0) if results else 0
 
-    def hybrid_retrieve(self, user_recs: List[Dict], query: str, 
-                    cf_weight: float = 0.5) -> List[Dict]:
+    def hybrid_retrieve(self, user_recs: List[Dict], query: str,
+                cf_weight: float = 0.5) -> List[Dict]:
         """
         Hybrid Retrieval Process:
         1. Get semantic similarity between query and each item
@@ -28,7 +30,13 @@ class RetrievalEngine:
         hybrid_results = []
         
         for rec in user_recs:
-            item_embedding = self.embedding_model.embed_query(rec['augmented_text'])
+            # item_embedding = self.embedding_lookup.get(rec['iid'])
+            # if item_embedding is None:
+            #     continue
+            item_embedding = self.embedding_model.embed_query(
+                rec["augmented_text"]
+            )
+            
             semantic_score = cosine_similarity([query_embedding], [item_embedding])[0][0]
             
             cf_score = rec.get('score', self._get_cf_score(rec['iid']))
@@ -37,14 +45,14 @@ class RetrievalEngine:
             
             hybrid_results.append({
                 **rec,
-                "semantic_score": semantic_score,
-                "cf_score": cf_score,
-                "hybrid_score": hybrid_score
+                "semantic_score": float(semantic_score),
+                "cf_score": float(cf_score),
+                "hybrid_score": float(hybrid_score)
             })
         
         return sorted(hybrid_results, key=lambda x: x['hybrid_score'], reverse=True)
 
-    def mmr_diversify(self, items: List[Dict], query: str, 
+    def mmr_diversify(self, items: List[Dict], query: str,
                     lambda_param: float = 0.7, top_k: int = 50) -> List[Dict]:
         """"
         MMR Diversification Process:
@@ -64,8 +72,26 @@ class RetrievalEngine:
         
         # prepare embeddings
         query_embedding = self.embedding_model.embed_query(query)
-        item_embeddings = np.array([self.embedding_model.embed_query(item['augmented_text']) 
-                                for item in items])
+        
+        # valid_items = []
+        # item_embeddings = []
+        # for item in items:
+        #     emb = self.embedding_lookup.get(item['iid'])
+
+        #     if emb is None:
+        #         continue
+
+        #     valid_items.append(item)
+        #     item_embeddings.append(emb)
+            
+        # items = valid_items
+        # if len(items) == 0:
+        #     return []
+        # item_embeddings = np.array(item_embeddings)
+        # item_embeddings = np.array([embedding_lookup[item['iid']] for item in items])
+        
+        item_embeddings = np.array([
+            self.embedding_model.embed_query(item["augmented_text"]) for item in items])
         
         # compute similarity matrices
         query_similarities = cosine_similarity([query_embedding], item_embeddings)[0]
@@ -106,6 +132,7 @@ class RetrievalEngine:
             original_idx = items.index(item)
             results.append({
                 **item,
-                'mmr_score': mmr_scores_dict.get(original_idx, 0)
+                'mmr_score': mmr_scores_dict.get(original_idx, 0),
+                'diversity_score': mmr_scores_dict.get(original_idx, 0)
             })
         return results

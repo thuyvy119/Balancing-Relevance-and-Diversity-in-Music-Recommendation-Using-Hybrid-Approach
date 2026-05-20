@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from collections import Counter
 from sklearn.metrics.pairwise import cosine_similarity
+from src.services.pipeline_loader import PipelineArtifacts
+
 
 def clean_categories(categories_list):
     # print(f"  clean_categories input: {categories_list} (type: {type(categories_list)})")
@@ -42,13 +44,13 @@ def clean_categories(categories_list):
     # print(f"Final cleaned categories: {cleaned}")
     return cleaned
 
-def calculate_intra_list_similarity(recommendations, pipeline_objects):
+def calculate_intra_list_similarity(recommendations, pipeline_objects: PipelineArtifacts):
     if len(recommendations) <= 1:
         return 0
     
     try:
-        if pipeline_objects and hasattr(pipeline_objects['retriever'], 'embedding_model'):
-            embedder = pipeline_objects['retriever'].embedding_model
+        if pipeline_objects and hasattr(pipeline_objects.retriever, 'embedding_model'):
+            embedder = pipeline_objects.retriever.embedding_model
             
             item_embeddings = []
             for rec in recommendations:

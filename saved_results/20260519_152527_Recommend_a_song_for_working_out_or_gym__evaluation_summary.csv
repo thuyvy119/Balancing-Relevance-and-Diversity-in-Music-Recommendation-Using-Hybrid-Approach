@@ -1,0 +1,14 @@
+Metric,Value,Query,Timestamp,Users_Evaluated
+Precision@10,0.212,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+HitRate@10,0.94,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+AvgSemanticSimilarity,0.21915942005599842,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+MAP@10,0.7835992063492064,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+MRR@10,0.9066666666666666,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+NDCG@10,0.8434533060801779,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+CategoryCoverage,2.05,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+UniqueCategories,20.5,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+Entropy,4.223716292676154,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+GiniIndex,0.9392023554450796,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+IntraListSimilarity,0.5179920556890675,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+Novelty,0.8726203388567132,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50
+Serendipity,0.4207022961841904,Recommend a song for working out or gym with fast melody,2026-05-19 15:25:27,50

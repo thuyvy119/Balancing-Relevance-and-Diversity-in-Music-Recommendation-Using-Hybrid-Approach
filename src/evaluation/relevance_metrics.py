@@ -2,10 +2,11 @@ from sklearn.metrics import ndcg_score
 import numpy as np
 import pandas as pd
 from sklearn.metrics.pairwise import cosine_similarity
+from src.services.pipeline_artifacts import PipelineArtifacts
 
-def evaluate_query_relevance(recommendations, query, pipeline_objects, similarity_threshold=0.25):
+def evaluate_query_relevance(recommendations, query, pipeline_objects: PipelineArtifacts, similarity_threshold=0.25):
     try:
-        embedder = pipeline_objects['retriever'].embedding_model
+        embedder = pipeline_objects.retriever.embedding_model
         query_embedding = embedder.embed_query(query)
         
         relevance_scores = []
