@@ -39,7 +39,7 @@ data/amazon/val_amazon.pkl.part*
 
 # Large pickle files
 data/amazon/saved/*.pkl
-data/*.pkl
+data/
 notebooks/amazon/saved_pipeline/*.pkl
 
 # Large data files
@@ -54,5 +54,10 @@ data/amazon/samples/sample_*.csv
 
 # Large compressed files
 *.jsonl.gz
+*.pkl
+*.bin
+*.sqlite3
+chroma_db/chroma.sqlite3
+saved_pipeline/
 notebooks/amazon/recommendations.jsonl.gz
 
