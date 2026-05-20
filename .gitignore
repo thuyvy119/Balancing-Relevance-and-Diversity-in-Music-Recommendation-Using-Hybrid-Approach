@@ -14,11 +14,10 @@ __pycache__/
 dist/
 build/
 
-# Environment files
+# Env
 .env
 .venv
-env/
-venv/
+
 
 # IDE
 .vscode/
@@ -37,11 +36,12 @@ data/amazon/train_amazon.pkl.part*
 data/amazon/test_amazon.pkl.part*
 data/amazon/val_amazon.pkl.part*
 
-# Large pickle files
+# Large files/ folder
 data/amazon/saved/*.pkl
 data/
 notebooks/amazon/saved_pipeline/*.pkl
 chroma_db/
+saved_pipeline/
 
 # Large data files
 *.parquet
@@ -58,7 +58,5 @@ data/amazon/samples/sample_*.csv
 *.pkl
 *.bin
 *.sqlite3
-chroma_db/chroma.sqlite3
-saved_pipeline/
 notebooks/amazon/recommendations.jsonl.gz
 
