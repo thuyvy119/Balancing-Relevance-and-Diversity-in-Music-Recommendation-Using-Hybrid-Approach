@@ -41,6 +41,7 @@ data/amazon/val_amazon.pkl.part*
 data/amazon/saved/*.pkl
 data/
 notebooks/amazon/saved_pipeline/*.pkl
+chroma_db/
 
 # Large data files
 *.parquet
