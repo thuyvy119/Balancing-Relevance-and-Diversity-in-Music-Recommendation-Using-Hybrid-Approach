@@ -1,9 +1,5 @@
-from transformers import pipeline
-from huggingface_hub import login
-import os
-import re
-import torch
 import json
+from langchain_ollama import ChatOllama
 from langchain_community.chat_models import ChatOllama
 from langchain.schema import HumanMessage
 

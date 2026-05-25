@@ -78,7 +78,6 @@ def clean_text_columns(df):
     return df
 
 def save_in_chunks(df, filename, chunk_size=1000):
-    """Save a dataframe to disk in chunks"""
     for i in range(0, len(df), chunk_size):
         chunk = df.iloc[i:i+chunk_size]
         mode = 'w' if i == 0 else 'a'

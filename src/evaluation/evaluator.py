@@ -1,5 +1,4 @@
 import random
-from src.pipelines.inference_pipeline import inference_pipeline
 from src.services.recommender_service import recommend_for_user
 from src.evaluation.relevance_metrics import evaluate_query_relevance, calculate_aggregate_query_relevance_metrics
 from src.evaluation.diversity_metrics import calculate_diversity_metrics, calculate_aggregate_diversity_metrics

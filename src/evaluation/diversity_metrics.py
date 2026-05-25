@@ -18,7 +18,7 @@ def clean_categories(categories_list):
         categories_list = [cat.strip() for cat in categories_list.split(',')]
     
     if not isinstance(categories_list, list):
-        print(f"Not a list, returning empty")
+        print("Not a list, returning empty")
         return []
     
     # Generic categories that don't provide meaningful diversity information

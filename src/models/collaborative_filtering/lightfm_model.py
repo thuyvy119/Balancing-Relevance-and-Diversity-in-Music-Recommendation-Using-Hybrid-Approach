@@ -46,14 +46,13 @@ class LightFMRecommender:
         return self.model, self.dataset, self.interactions
 
     def recommend(self, data, user_id, k, filter_rated=True):
-        """Generate top-k recommendations"""
         if self.dataset is None:
             raise ValueError("Model is not trained yet - call fit() first")
         
         n_items = self.dataset.interactions_shape()[1]
         scores = self.model.predict(
             user_ids = np.full(n_items, user_id),
-            item_ids = p.arange(n_items),
+            item_ids = np.arange(n_items),
         )
         #  user_features=self.user_feature_matrix
         

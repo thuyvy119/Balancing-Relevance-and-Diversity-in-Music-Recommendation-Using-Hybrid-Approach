@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.ipynb_checkpoints/
+
+data/
+notebooks/
+evaluation_plots/
+saved_pipeline/
+saved_recommendations/
+saved_results/
+
+venv/
+.env
+.gitignore
+README.md

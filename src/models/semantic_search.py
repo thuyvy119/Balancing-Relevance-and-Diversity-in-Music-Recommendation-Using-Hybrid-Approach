@@ -1,7 +1,3 @@
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain.schema import Document
 from sklearn.metrics.pairwise import cosine_similarity
 
 class NewUserRetriever:

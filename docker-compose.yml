@@ -1,0 +1,47 @@
+version: 3,8
+services:
+  training_service:
+    build: 
+      context: .
+      dockerfile: docker/train/Dockerfile
+    platform: linux/amd64
+    container_name: training_service
+    volumes:
+      - ./saved_pipeline:/app/saved_pipeline
+      - ./chroma_db:/app/chroma_db
+      - ./data:/app/data
+    
+  inference_service:
+    build: 
+      context: .
+      dockerfile: docker/inference/Dockerfile
+    container_name: inference_service
+    depends_on:
+      - ollama
+    volumes:
+      - ./saved_pipeline:/app/saved_pipeline
+      - ./chroma_db:/app/chroma_db
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+  
+  evaluation_service:
+    build: 
+      context: .
+      dockerfile: docker/evaluation/Dockerfile
+    container_name: evaluation_service
+    volumes:
+      - ./saved_pipeline:/app/saved_pipeline
+      - ./chroma_db:/app/chroma_db
+      - ./evaluation_plots:/app/evaluation_plots
+      - ./save_results:/app/save_results
+  
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+volumes:
+  ollama_data:
+
