@@ -1,5 +1,5 @@
 from src.services.pipeline_loader import load_pipeline
-from src.services.recommender_service import recommend_for_user
+from src.services.recommender_service_old import recommend_for_user
 
 
 def inference_pipeline(user_id, query, debug=False):

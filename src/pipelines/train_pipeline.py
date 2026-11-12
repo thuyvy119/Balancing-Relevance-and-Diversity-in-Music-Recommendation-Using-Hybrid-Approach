@@ -1,5 +1,5 @@
 import pandas as pd
-from src.models.lightfm import LightFMTrainer
+from src.models.lightfm_trainer import LightFMTrainer
 from src.models.vectorDBbuild import VectorDBBuilder
 from src.models.hybrid_retrieval import RetrievalEngine
 from src.models.llm import LLMReranker
@@ -10,7 +10,7 @@ def train_pipeline(train_data_path, k=50):
     train_data = pd.read_csv(train_data_path)
 
     lightfm_model = LightFMTrainer()
-    lightfm_model.fit_and_train(train_data, learning_rate=0.01, epochs=50)
+    lightfm_model.fit_and_train(train_data)
 
     all_recommendations = lightfm_model.get_top_k(k=k)
 

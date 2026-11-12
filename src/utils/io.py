@@ -4,9 +4,9 @@ from datetime import datetime
 
 def save_pipeline(df, chroma_db, save_dir="saved_pipeline"):
     os.makedirs(save_dir, exist_ok=True)
-
     df.to_pickle(f"{save_dir}/recommendations.pkl")
-    chroma_db.persist()
+    if hasattr(chroma_db, "persist"):      # langchain_chroma persists automatically
+        chroma_db.persist()
 
 def load_recommendations(save_dir="saved_pipeline"):
     return pd.read_pickle(f"{save_dir}/recommendations.pkl")
@@ -67,7 +67,7 @@ def save_recommendations(all_recommendations, test_query, save_prefix=None, save
     
     return recommendations_filename
 
-def save_comprehensive_results(relevance_metrics, diversity_metrics, test_query="", save_prefix=None, save_dir="saved_results"):
+def save_comprehensive_results(relevance_metrics, diversity_metrics, test_query="", save_prefix=None, save_dir="results"):
     os.makedirs(save_dir, exist_ok=True)
     if not relevance_metrics or not diversity_metrics:
         print("No data to save for comprehensive results")
@@ -85,8 +85,8 @@ def save_comprehensive_results(relevance_metrics, diversity_metrics, test_query=
     results_df = rel_df.merge(div_df, on='user_id', suffixes=('_rel', '_div'))
     
     detailed_filename = f"{save_prefix}_evaluation_results.csv"
-    results_df.to_csv(detailed_filename, index=False)
-    print(f"Detailed evaluation results saved to: {detailed_filename}")
+    results_df.to_csv(f"{save_dir}/{detailed_filename}", index=False)
+    print(f"Detailed evaluation results saved to: {save_dir}/{detailed_filename}")
     
     # save summary
     summary_data = {

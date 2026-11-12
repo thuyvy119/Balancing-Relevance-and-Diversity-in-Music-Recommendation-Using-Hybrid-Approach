@@ -2,137 +2,91 @@ import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from typing import List, Dict
 
-class RetrievalEngine:  
+
+def _minmax(x):
+    x = np.asarray(x, dtype=float)
+    rng = x.max() - x.min()
+    return (x - x.min()) / rng if rng > 1e-12 else np.zeros_like(x)
+
+
+class _CachingEmbedder:
+    """Wraps an embedding model; embed_query results are cached by text (the evaluation metrics call
+    embed_query for the same few hundred items thousands of times)."""
+
+    def __init__(self, base):
+        self._base, self._q = base, {}
+
+    def embed_query(self, text):
+        if text not in self._q:
+            self._q[text] = (self._base.embed_query(text) if hasattr(self._base, "embed_query")
+                             else self._base.embed_documents([text])[0])
+        return self._q[text]
+
+    def embed_documents(self, texts):
+        return self._base.embed_documents(texts)
+
+    def __getattr__(self, name):
+        return getattr(self._base, name)
+
+
+class RetrievalEngine:
     def __init__(self, chroma_db, embedding_model, embedding_lookup=None):
         self.chroma_db = chroma_db
-        self.embedding_model = embedding_model
-        # self.embedding_lookup = embedding_lookup or {}
-        # print(f"Embedding lookup size: {len(self.embedding_lookup)}")
+        self.embedding_model = _CachingEmbedder(embedding_model)
+        self._cache = {}                      # text -> embedding (shared by all stages/variants)
 
-    def _get_cf_score(self, iid: str) -> float:
-        results = self.chroma_db._collection.get(where={"iid": iid})
-        return results['metadatas'][0].get('cf_score', 0) if results else 0
+    def embed_texts(self, texts):
+        missing = list({t for t in texts if t not in self._cache})
+        if missing:
+            for t, v in zip(missing, self.embedding_model.embed_documents(missing)):
+                self._cache[t] = np.asarray(v, dtype=np.float32)
+        return np.vstack([self._cache[t] for t in texts])
 
-    def hybrid_retrieve(self, user_recs: List[Dict], query: str,
-                cf_weight: float = 0.5) -> List[Dict]:
-        """
-        Hybrid Retrieval Process:
-        1. Get semantic similarity between query and each item
-        2. Combine with CF scores
-        3. Return weighted hybrid scores
-        
-        Args:
-            user_recs: List of user's recommendations with CF scores
-            query: User's search query
-            cf_weight: 0.5 = equal weight to CF and semantic scores
-        """
-        query_embedding = self.embedding_model.embed_query(query)
-        hybrid_results = []
-        
-        for rec in user_recs:
-            # item_embedding = self.embedding_lookup.get(rec['iid'])
-            # if item_embedding is None:
-            #     continue
-            item_embedding = self.embedding_model.embed_query(
-                rec["augmented_text"]
-            )
-            
-            semantic_score = cosine_similarity([query_embedding], [item_embedding])[0][0]
-            
-            cf_score = rec.get('score', self._get_cf_score(rec['iid']))
-            
-            hybrid_score = (cf_weight * cf_score) + ((1 - cf_weight) * semantic_score)
-            
-            hybrid_results.append({
-                **rec,
-                "semantic_score": float(semantic_score),
-                "cf_score": float(cf_score),
-                "hybrid_score": float(hybrid_score)
-            })
-        
-        return sorted(hybrid_results, key=lambda x: x['hybrid_score'], reverse=True)
+    def hybrid_retrieve(self, user_recs: List[Dict], query: str, cf_weight: float = 0.5,
+                        normalize: bool = True) -> List[Dict]:
+        """hybrid = w * CF + (1-w) * semantic. With normalize=True both components are
+        min-max scaled within the user's candidate pool, so w is the true relative weight
+        (raw LightFM scores are unbounded; cosine similarity is not)."""
+        if not user_recs:
+            return []
+        q = self.embed_texts([query])
+        items = self.embed_texts([r["augmented_text"] for r in user_recs])
+        sem = cosine_similarity(q, items)[0]
+        cf = np.array([float(r.get("cf_score", r.get("score", 0.0))) for r in user_recs])
+        cf_n, sem_n = (_minmax(cf), _minmax(sem)) if normalize else (cf, sem)
+        hybrid = cf_weight * cf_n + (1 - cf_weight) * sem_n
+        out = [{**r,
+                "semantic_score": float(s), "cf_score": float(c),
+                "cf_score_norm": float(cn), "semantic_score_norm": float(sn),
+                "hybrid_score": float(h)}
+               for r, s, c, cn, sn, h in zip(user_recs, sem, cf, cf_n, sem_n, hybrid)]
+        return sorted(out, key=lambda x: x["hybrid_score"], reverse=True)
 
-    def mmr_diversify(self, items: List[Dict], query: str,
-                    lambda_param: float = 0.7, top_k: int = 50) -> List[Dict]:
-        """"
-        MMR Diversification Process:
-        1. Compute query-doc similarity for relevance
-        2. Compute doc-doc similarity for diversity
-        3. Select items that maximize: 
-           lambda * (query relevance) - (1-lambda) * (max similarity to selected docs)
-        
-        Args:
-            items: List of scored items from hybrid_retrieve
-            query: Original user query
-            lambda_param: 1.0 = pure relevance, 0.0 = pure diversity
-            top_k: Number of items to return
-        """
+    def mmr_diversify(self, items: List[Dict], query: str, lambda_param: float = 0.7,
+                      top_k: int = 50, relevance_key="hybrid_score") -> List[Dict]:
+        """MMR: argmax  lambda * relevance(i) - (1-lambda) * max_{j in S} sim(i, j).
+        relevance_key='hybrid_score' (default) keeps the CF signal in the relevance term;
+        relevance_key=None reproduces the earlier behaviour (query similarity only)."""
         if not items:
             return []
-        
-        # prepare embeddings
-        query_embedding = self.embedding_model.embed_query(query)
-        
-        # valid_items = []
-        # item_embeddings = []
-        # for item in items:
-        #     emb = self.embedding_lookup.get(item['iid'])
+        E = self.embed_texts([i["augmented_text"] for i in items])
+        if relevance_key and relevance_key in items[0]:
+            rel = _minmax([i[relevance_key] for i in items])
+        else:
+            rel = cosine_similarity(self.embed_texts([query]), E)[0]
+        ds = cosine_similarity(E)
 
-        #     if emb is None:
-        #         continue
-
-        #     valid_items.append(item)
-        #     item_embeddings.append(emb)
-            
-        # items = valid_items
-        # if len(items) == 0:
-        #     return []
-        # item_embeddings = np.array(item_embeddings)
-        # item_embeddings = np.array([embedding_lookup[item['iid']] for item in items])
-        
-        item_embeddings = np.array([
-            self.embedding_model.embed_query(item["augmented_text"]) for item in items])
-        
-        # compute similarity matrices
-        query_similarities = cosine_similarity([query_embedding], item_embeddings)[0]
-        doc_similarities = cosine_similarity(item_embeddings)
-        
-        # MMR selection
-        selected_items = []
-        selected_indices = []
-        remaining_indices = set(range(len(items)))
-        mmr_scores_dict = {}
-        
-        while len(selected_indices) < min(top_k, len(items)) and remaining_indices:
-            cur_score = []
-            for idx in remaining_indices:
-                if not selected_indices:
-                    # 1st item uses query similarity only
-                    score = lambda_param * query_similarities[idx]
+        selected, scores, remaining = [], {}, list(range(len(items)))
+        while remaining and len(selected) < min(top_k, len(items)):
+            best, best_s = None, -np.inf
+            for idx in remaining:
+                if not selected:
+                    s = lambda_param * rel[idx]
                 else:
-                    # subsequent items balance query and doc similarities
-                    max_sim_to_selected = max(doc_similarities[idx][s_idx] 
-                                            for s_idx in selected_indices)
-                    score = (lambda_param * query_similarities[idx] - 
-                        (1 - lambda_param) * max_sim_to_selected)
-                cur_score.append((idx, score))
-            
-            if not cur_score:
-                break
-            
-            # select item with highest MMR score
-            best_idx, best_score = max(cur_score, key=lambda x: x[1])
-            selected_items.append(items[best_idx])
-            selected_indices.append(best_idx)
-            mmr_scores_dict[best_idx]= best_score
-            remaining_indices.remove(best_idx)
-        
-        results = []
-        for item in selected_items:
-            original_idx = items.index(item)
-            results.append({
-                **item,
-                'mmr_score': mmr_scores_dict.get(original_idx, 0),
-                'diversity_score': mmr_scores_dict.get(original_idx, 0)
-            })
-        return results
+                    s = lambda_param * rel[idx] - (1 - lambda_param) * max(ds[idx][j] for j in selected)
+                if s > best_s:
+                    best, best_s = idx, s
+            selected.append(best)
+            scores[best] = float(best_s)
+            remaining.remove(best)
+        return [{**items[i], "mmr_score": scores[i], "diversity_score": scores[i]} for i in selected]

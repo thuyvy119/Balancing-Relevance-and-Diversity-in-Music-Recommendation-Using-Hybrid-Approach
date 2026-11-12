@@ -3,7 +3,9 @@ import pandas as pd
 from collections import Counter
 from sklearn.metrics.pairwise import cosine_similarity
 from src.services.pipeline_loader import PipelineArtifacts
+import re
 
+_NOISE = re.compile(r"^(CDs? \$[\d.]+ - \$[\d.]+|.*Deals in Music.*)$", re.I)
 
 def clean_categories(categories_list):
     # print(f"  clean_categories input: {categories_list} (type: {type(categories_list)})")
@@ -33,7 +35,7 @@ def clean_categories(categories_list):
         
         if isinstance(category, str):
             category = category.strip()
-            if category not in generic_categories:
+            if category not in generic_categories and not _NOISE.match(category):
                 cleaned.append(category)
             #     print(f"Added: '{category}'")
             # else:

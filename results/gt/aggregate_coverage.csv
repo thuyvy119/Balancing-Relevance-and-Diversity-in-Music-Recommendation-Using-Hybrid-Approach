@@ -1,0 +1,37 @@
+query,variant,n_users,unique_items,catalog_coverage,mean_pairwise_jaccard
+classic rock albums with great guitar solos,cf_only,2461,33,0.0011342155009451795,0.7412097784962106
+classic rock albums with great guitar solos,hybrid,2461,29,0.0009967348341639456,0.7297055875447835
+classic rock albums with great guitar solos,hybrid_mmr,2461,30,0.0010311050008592541,0.6756836463369126
+classic rock albums with great guitar solos,popularity,2461,12,0.0004124420003437017,0.9963727729556876
+classic rock albums with great guitar solos,random,2461,16558,0.5691012201409177,0.00023803226659613856
+classic rock albums with great guitar solos,semantic_only,2461,33,0.0011342155009451795,0.6414180063211987
+contemporary R&B and soul,cf_only,2461,33,0.0011342155009451795,0.7197187067538827
+contemporary R&B and soul,hybrid,2461,33,0.0011342155009451795,0.634449047602314
+contemporary R&B and soul,hybrid_mmr,2461,40,0.001374806667812339,0.6685307219138138
+contemporary R&B and soul,popularity,2461,12,0.0004124420003437017,0.9945728643216081
+contemporary R&B and soul,random,2461,16558,0.5691012201409177,0.0001986540891592465
+contemporary R&B and soul,semantic_only,2461,44,0.0015122873345935729,0.55332560601891
+heavy metal and hard rock for a workout,cf_only,2461,33,0.0011342155009451795,0.7432333160976378
+heavy metal and hard rock for a workout,hybrid,2461,33,0.0011342155009451795,0.6205460354011936
+heavy metal and hard rock for a workout,hybrid_mmr,2461,34,0.001168585667640488,0.6591531638132287
+heavy metal and hard rock for a workout,popularity,2461,12,0.0004124420003437017,0.9963727729556875
+heavy metal and hard rock for a workout,random,2461,16558,0.5691012201409177,0.00020629463104998675
+heavy metal and hard rock for a workout,semantic_only,2461,39,0.0013404365011170304,0.5752668018748421
+modern country music,cf_only,2461,33,0.0011342155009451795,0.733200735612796
+modern country music,hybrid,2461,35,0.0012029558343357965,0.7407218409730973
+modern country music,hybrid_mmr,2461,37,0.0012716961677264134,0.7339630386364054
+modern country music,popularity,2461,12,0.0004124420003437017,0.9981818181818181
+modern country music,random,2461,16558,0.5691012201409177,0.00020658849804578445
+modern country music,semantic_only,2461,40,0.001374806667812339,0.6470965301818095
+progressive rock concept albums,cf_only,2461,33,0.0011342155009451795,0.7376148139967236
+progressive rock concept albums,hybrid,2461,35,0.0012029558343357965,0.6263608585719138
+progressive rock concept albums,hybrid_mmr,2461,34,0.001168585667640488,0.6542290414777852
+progressive rock concept albums,popularity,2461,12,0.0004124420003437017,0.9963727729556876
+progressive rock concept albums,random,2461,16558,0.5691012201409177,0.00018513620735255223
+progressive rock concept albums,semantic_only,2461,40,0.001374806667812339,0.6132372731219908
+soulful singer-songwriter music for a quiet evening,cf_only,2461,33,0.0011342155009451795,0.7358281919085939
+soulful singer-songwriter music for a quiet evening,hybrid,2461,39,0.0013404365011170304,0.5560528484994857
+soulful singer-songwriter music for a quiet evening,hybrid_mmr,2461,43,0.0014779171678982643,0.5110483507690128
+soulful singer-songwriter music for a quiet evening,popularity,2461,12,0.0004124420003437017,0.9948576214405359
+soulful singer-songwriter music for a quiet evening,random,2461,16558,0.5691012201409177,0.00022245731581886036
+soulful singer-songwriter music for a quiet evening,semantic_only,2461,47,0.0016153978346794982,0.5073868771718313

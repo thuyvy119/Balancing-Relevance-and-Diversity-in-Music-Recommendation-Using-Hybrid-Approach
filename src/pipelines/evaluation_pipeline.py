@@ -1,61 +1,76 @@
+import os
+import hashlib
+import pickle
+import pandas as pd
 from src.services.pipeline_loader import load_pipeline
-from src.evaluation.evaluator import evaluate_users
-from src.utils.io import save_recommendations, save_comprehensive_results
-from src.evaluation.visualization import create_comprehensive_visualizations
+from src.evaluation.evaluator import (evaluate_variants, summarize, paired_tests, bootstrap_ci,
+                                      pool_queries, aggregate_coverage, ALL_VARIANTS)
+from src.evaluation.metrics_v2 import EvalEmbedder
+from src.utils.io import save_recommendations
 
-def evaluation_pipeline(
-    train_data,
-    test_data,
-    query,
-    sample_size=None,
-    use_llm=True
-):
+SHOW = ["GT_Recall@10", "GT_NDCG@10", "PoolRecall@50", "Genre_P@10", "Genre_NDCG@10",
+        "Semantic_P@10_t0.25", "Semantic_P@10_t0.35", "Indep_P@10_t0.35", "Indep_MeanSim",
+        "IntraListSimilarity", "Entropy", "Serendipity", "llm_fallback"]
+
+
+def evaluation_pipeline(train_data, test_data, query, sample_size=None, variants=None, seed=42,
+                        user_split=None, cf_weight=0.5, mmr_lambda=0.7, llm_sample_size=None,
+                        eval_embedding_model=None, light=False, out_dir="results/ablation"):
+    """query: str | list[str] | dict{query: [genre keywords]}  (keywords give an embedding-free relevance judge).
+    All variants are evaluated on the SAME users. 'full' (LLM) can be limited to the first llm_sample_size users."""
+    os.makedirs(out_dir, exist_ok=True)
+    kw = query if isinstance(query, dict) else {}
+    queries = [query] if isinstance(query, str) else list(query)
+    variants = variants or ALL_VARIANTS
+
     print("\nLoading pipeline...")
-    pipeline_objects = load_pipeline()
+    po = load_pipeline()
+    eval_emb = EvalEmbedder(eval_embedding_model) if eval_embedding_model else None
 
-    print("\nStarting evaluation... \n")
-    results = evaluate_users(
-        pipeline_objects,
-        train_data,
-        test_data,
-        query=query,
-        sample_size=sample_size,
-        use_llm=use_llm
-    )
-    agg_rel = results["aggregate_relevance"]
-    agg_div = results["aggregate_diversity"]
-    print("\nFINAL RESULTS")
-    print("=" * 50)
+    frames, rec_logs, catalog_size = [], [], None
+    part_dir = f"{out_dir}/partial"            # one checkpoint per query: a crash loses at most one query
+    os.makedirs(part_dir, exist_ok=True)
+    for q in queries:
+        cfg = repr((q, tuple(variants), sample_size, llm_sample_size, seed, user_split,
+                    cf_weight, mmr_lambda, light, eval_embedding_model, kw.get(q)))
+        ckpt = f"{part_dir}/{hashlib.md5(cfg.encode()).hexdigest()[:12]}.pkl"
+        if os.path.exists(ckpt):
+            print(f"Resuming from checkpoint for query: {q}")
+            with open(ckpt, "rb") as fh:
+                res = pickle.load(fh)
+        else:
+            res = evaluate_variants(po, train_data, test_data, q, variants=variants, sample_size=sample_size,
+                                    seed=seed, user_split=user_split, cf_weight=cf_weight, mmr_lambda=mmr_lambda,
+                                    genre_keywords=kw.get(q), eval_embedder=eval_emb,
+                                    llm_sample_size=llm_sample_size, light=light)
+            with open(ckpt, "wb") as fh:
+                pickle.dump(res, fh)
+        frames.append(res["per_user"])
+        rec_logs += res["recommendations"]
+        catalog_size = res["catalog_size"]
 
-    print(f"\nQUERY RELEVANCE METRICS ({agg_rel.get('Total_Users',0)} users):")
-    print(f"   Average Precision@10:    {agg_rel.get('Mean_Precision@10',0):.4f}")
-    print(f"   Average Hit Rate@10:     {agg_rel.get('Mean_HitRate@10',0):.4f}")
-    print(f"   Average Semantic Similarity: {agg_rel.get('Mean_Similarity',0):.4f}")
-    print(f"   Average MAP@10:          {agg_rel.get('Mean_MAP@10',0):.4f}")
-    print(f"   Average MRR@10:          {agg_rel.get('Mean_MRR@10',0):.4f}")
-    print(f"   Average NDCG@10:         {agg_rel.get('Mean_NDCG@10',0):.4f}")
+    per_user = pool_queries(pd.concat(frames, ignore_index=True))
+    summary = summarize(per_user)
+    ci = bootstrap_ci(per_user)
+    ref = "full" if "full" in variants else variants[-1]
+    tests = paired_tests(per_user, reference=ref)
+    coverage = aggregate_coverage(rec_logs, catalog_size)
 
-    print("\nDIVERSITY METRICS:")
-    print(f"   Mean Category Coverage: {agg_div.get('Mean_CategoryCoverage',0):.4f}")
-    print(f"   Mean Unique Categories: {agg_div.get('Mean_UniqueCategories',0):.2f}")
-    print(f"   Mean Entropy:          {agg_div.get('Mean_Entropy',0):.4f}")
-    print(f"   Mean Gini Index:       {agg_div.get('Mean_GiniIndex',0):.4f}")
-    print(f"   Mean Intra-List Similarity: {agg_div.get('Mean_IntraListSimilarity',0):.4f}")
-    print(f"   Mean Novelty:              {agg_div.get('Mean_Novelty',0):.4f}")
-    print(f"   Mean Serendipity:          {agg_div.get('Mean_Serendipity',0):.4f}")
+    per_user.to_csv(f"{out_dir}/per_user_metrics.csv", index=False)
+    summary.to_csv(f"{out_dir}/summary_by_variant.csv", index=False)
+    ci.to_csv(f"{out_dir}/bootstrap_ci.csv", index=False)
+    tests.to_csv(f"{out_dir}/paired_tests.csv", index=False)
+    coverage.to_csv(f"{out_dir}/aggregate_coverage.csv", index=False)
+    for v in variants:
+        sub = [r for r in rec_logs if r["variant"] == v]
+        if sub:
+            save_recommendations(sub, v, save_prefix=v, save_dir=f"{out_dir}/recommendations")
 
-    save_recommendations(results["recommendations"], query)
-
-    save_comprehensive_results(
-        results["relevance_metrics"],
-        results["diversity_metrics"],
-        query
-    )
-    
-    print("\nGenerating visualizations...")
-    create_comprehensive_visualizations(results["relevance_metrics"], results["diversity_metrics"], query=query, save_dir="evaluation_plots")
-    print("\nVisualizations generated successfully!")
-
-    print("\nEvaluation completed successfully!")
-
-    return results
+    print(f"\nLLM calls: {getattr(po.llm_reranker, 'n_calls', 0)}, unusable outputs (fell back to MMR order): "
+          f"{getattr(po.llm_reranker, 'n_fallback', 0)}")
+    show = ["query", "variant"] + [f"{c}_mean" for c in SHOW if f"{c}_mean" in summary.columns] + ["n_users"]
+    print("\nSUMMARY (mean over users; SD and 95% CI are in the CSV files)")
+    print(summary[show].round(4).to_string(index=False))
+    print(f"\nCOVERAGE ACROSS USERS (catalog size = {catalog_size})")
+    print(coverage.round(4).to_string(index=False))
+    return {"per_user": per_user, "summary": summary, "ci": ci, "tests": tests, "coverage": coverage}

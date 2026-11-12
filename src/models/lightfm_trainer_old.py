@@ -9,16 +9,16 @@ class LightFMTrainer:
         self.dataset = None
         self.fitted_data = None
         
-    def fit_and_train(self, data, learning_rate=0.01, epochs=50):
+    def fit_and_train(self, data, learning_rate=0.005, epochs=20, no_components=10, random_state=42, num_threads=1):
+        data = data[data['label'] > 0].drop_duplicates(['uid', 'iid']).reset_index(drop=True)
         dataset = Dataset()
         dataset.fit(users=data['uid'].unique(), items=data['iid'].unique())
-        
         interactions, weights = dataset.build_interactions(
-            ((row['uid'], row['iid'], row['label']) for _, row in data.iterrows()))
+            zip(data['uid'], data['iid']))
         
-        model = LightFM(loss='warp', learning_rate=learning_rate, 
-                        item_alpha=1e-6, user_alpha=1e-6)
-        model.fit(interactions, epochs=epochs, num_threads=4)
+        model = LightFM(loss='warp', learning_rate=learning_rate, no_components=no_components,
+                        item_alpha=1e-4, user_alpha=1e-4, random_state=random_state)
+        model.fit(interactions, epochs=epochs, num_threads=num_threads)
         
         self.model = model
         self.dataset = dataset
