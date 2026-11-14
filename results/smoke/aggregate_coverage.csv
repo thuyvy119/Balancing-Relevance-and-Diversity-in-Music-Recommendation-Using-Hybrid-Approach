@@ -1,8 +1,8 @@
 query,variant,n_users,unique_items,catalog_coverage,mean_pairwise_jaccard
 classic rock albums with great guitar solos,cf_only,20,15,0.0005155525004296271,0.7403859298596142
-classic rock albums with great guitar solos,full,20,28,0.0009623646674686373,0.3944178886129351
+classic rock albums with great guitar solos,full,20,26,0.0008936243340780203,0.4366991883245754
 classic rock albums with great guitar solos,hybrid,20,17,0.000584292833820244,0.7339099496994236
-classic rock albums with great guitar solos,hybrid_mmr,20,17,0.000584292833820244,0.6789315947210683
+classic rock albums with great guitar solos,hybrid_mmr,20,17,0.000584292833820244,0.6370769581295898
 classic rock albums with great guitar solos,popularity,20,10,0.00034370166695308474,1.0
 classic rock albums with great guitar solos,random,20,200,0.006874033339061694,0.0
 classic rock albums with great guitar solos,semantic_only,20,19,0.000653033167210861,0.6487214539846119
